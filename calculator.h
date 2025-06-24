@@ -51,6 +51,7 @@ private slots:
     void floatButtonClicked();
     void powerButtonClicked();
     void calculate();
+    void calculation();
     int priorityOperator(QChar&);
     double maths(QChar& op, double a = 0,double b = 0);
 

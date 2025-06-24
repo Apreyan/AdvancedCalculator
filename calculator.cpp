@@ -73,7 +73,7 @@ Calculator::Calculator() {
     connect(m_div_button, SIGNAL(clicked()), this, SLOT(operatorClicked()));
     connect(m_power_button, SIGNAL(clicked()), this, SLOT(powerButtonClicked()));
     //connect(m_sqrt_button, SIGNAL(clicked()), this, SLOT(operatorClicked()));
-    connect(m_equal_button, SIGNAL(clicked()), this, SLOT(calculate()));
+    connect(m_equal_button, SIGNAL(clicked()), this, SLOT(calculation()));
     connect(m_float_button, SIGNAL(clicked()), this, SLOT(floatButtonClicked()));
 
     // Layout
@@ -167,6 +167,7 @@ void Calculator::clearClicked()
 {
     m_display->setText("0");
     m_display_answer->clear();
+    m_count_of_brackets = 0;
     m_floatClicked = false;
 }
 
@@ -174,6 +175,12 @@ void Calculator::backspaceClicked()
 {
     if(m_display->text().endsWith('.')){
         m_floatClicked = false;
+    }
+    else if(m_display->text().endsWith(')')){
+        m_count_of_brackets++;
+    }
+    else if(m_display->text().endsWith('(')){
+        m_count_of_brackets--;
     }
     m_display->setText(m_display->text().removeLast());
     if(m_display->text() == "")
@@ -200,6 +207,7 @@ void Calculator::closeBracketClicked()
         m_display->setText(m_display->text() + ')');
         m_count_of_brackets--; // jnjvox
     }
+
 }
 
 void Calculator::calculate()
@@ -211,17 +219,34 @@ void Calculator::calculate()
 
     while(!exp.isEmpty()){
 
+        int i = 0;
+        if(!exp.isEmpty() && exp.front() == '('){
+            i += 3;
+            exp.removeFirst();
+
+
+        }
+        else if(!exp.isEmpty() && exp.front() == ')'){
+            i -= 3;
+            exp.removeFirst();
+        }
+
         while(!exp.isEmpty() && (exp.front().isDigit()|| exp.front() == '.')){
             temp += exp.front();
             exp.removeFirst();
         }
 
-        operands.push(temp.toDouble());
-        temp.clear();
+        if(temp != ""){
+
+            operands.push(temp.toDouble());
+            temp.clear();
+        }
 
         while(!(exp.isEmpty() || exp.front().isDigit())){
 
-            if(!operators.empty() && (priorityOperator(operators.top()) >= priorityOperator(exp.front()))){
+
+
+            if(!operators.empty() && (priorityOperator(operators.top()) >= priorityOperator(exp.front()) + i)){
                 double b = operands.pop();
                 double a = operands.pop();
                 operands.push(maths(operators.top(), a, b));
@@ -229,20 +254,21 @@ void Calculator::calculate()
 
             }
 
-            if(!exp.isEmpty() && exp.front() == '('){
-                operators.push('(');
-                exp.removeFirst();
-            }
+            // if(!exp.isEmpty() && exp.front() == '('){
+            //     operators.push('(');
+            //     exp.removeFirst();
+            // }
 
-            else if(!exp.isEmpty() && exp.front() == ')'){
-                while(operators.top() != '('){
-                    double b = operands.pop();
-                    double a = operands.pop();
-                    operands.push(maths(operators.top(), a, b));
-                    operators.pop();
-                }
-                operators.pop();
-            }
+            // else if(!exp.isEmpty() && exp.front() == ')'){
+            //     exp.removeFirst();
+            //     while(operators.top() != '('){
+            //         double b = operands.pop();
+            //         double a = operands.pop();
+            //         operands.push(maths(operators.top(), a, b));
+            //         operators.pop();
+            //     }
+            //     operators.pop();
+            // }
 
             operators.push(exp.front());
             exp.removeFirst();
@@ -253,6 +279,7 @@ void Calculator::calculate()
     }
 
     if (exp.isEmpty()){
+
         while(!operators.empty()){
 
             double b = operands.pop();
@@ -263,7 +290,10 @@ void Calculator::calculate()
         }
 
     }
-    m_display_answer->setText(QString::number(operands.top()));
+    if(!operands.empty()){
+
+        m_display_answer->setText(QString::number(operands.top()));
+    }
 
 
     while(!operands.empty()){
@@ -271,6 +301,103 @@ void Calculator::calculate()
         operands.pop();
     }
 
+
+}
+
+void Calculator::calculation()
+{
+    QString exp = m_display->displayText();
+    QStack<double> operands;
+    QStack<QChar> operators;
+
+    int i = 0;
+
+    while(!exp.isEmpty()){
+
+
+        if(!exp.isEmpty() && exp.front().isDigit()){
+
+            QString temp = "";
+
+            while(!exp.isEmpty() && (exp.front().isDigit() || exp.front() == '.')){
+
+                temp += exp.front();
+                exp.removeFirst();
+            }
+
+            if(temp != ""){
+                operands.push(temp.toDouble());
+                temp.clear();
+            }
+        }
+
+        else if(!exp.isEmpty() && exp.front() == '('){
+
+            operators.push('(');
+            exp.removeFirst();
+
+            // i += 3;
+            // exp.removeFirst();
+        }
+
+        else if(!exp.isEmpty() && exp.front() == ')'){
+
+            while(operators.top() != '('){
+                double b = operands.pop();
+                double a = operands.pop();
+                operands.push(maths(operators.top(), a, b));
+                operators.pop();
+            }
+
+            operators.pop();
+            exp.removeFirst();
+            // i -= 3;
+            // exp.removeFirst();
+        }
+
+        else if(!exp.isEmpty()) {
+
+            if(!operators.empty() && (priorityOperator(operators.top()) >= priorityOperator(exp.front()) + i)){
+                double b = operands.pop();
+                double a = operands.pop();
+                if(operators.top() == '('){
+                    operators.pop();
+                }
+                operands.push(maths(operators.top(), a, b));
+                operators.pop();
+            }
+
+            operators.push(exp.front());
+            exp.removeFirst();
+
+        }
+
+        if(exp.isEmpty()){
+
+            while(!operators.empty()){
+
+                if(operands.size()>1){
+
+
+                    double b = operands.pop();
+                    double a = operands.pop();
+                    if(operators.top() == '(')
+                        operators.pop();
+                    operands.push(maths(operators.top(), a, b));
+                    operators.pop();
+                }
+                else break;
+
+            }
+
+        }
+
+    }
+
+    if(!operands.empty()){
+
+        m_display_answer->setText(QString::number(operands.top()));
+    }
 
 }
 
