@@ -16,6 +16,7 @@ public:
 
 private:
     short int m_count_of_brackets; //jnjvox
+    bool      m_floatClicked;
 
     QLineEdit* m_display;
     QLineEdit* m_display_answer;
@@ -47,7 +48,11 @@ private slots:
     void backspaceClicked();
     void openBracketClicked();
     void closeBracketClicked();
-
+    void floatButtonClicked();
+    void powerButtonClicked();
+    void calculate();
+    int priorityOperator(QChar&);
+    double maths(QChar& op, double a = 0,double b = 0);
 
 };
 

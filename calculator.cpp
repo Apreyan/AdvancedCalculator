@@ -6,6 +6,8 @@
 #include <QString>
 #include <QStack>
 
+#include <QLocale>
+
 
 Calculator::Calculator() {
 
@@ -69,8 +71,10 @@ Calculator::Calculator() {
     connect(m_minus_button, SIGNAL(clicked()), this, SLOT(operatorClicked()));
     connect(m_multi_button, SIGNAL(clicked()), this, SLOT(operatorClicked()));
     connect(m_div_button, SIGNAL(clicked()), this, SLOT(operatorClicked()));
-    connect(m_sqrt_button, SIGNAL(clicked()), this, SLOT(operatorClicked()));
-
+    connect(m_power_button, SIGNAL(clicked()), this, SLOT(powerButtonClicked()));
+    //connect(m_sqrt_button, SIGNAL(clicked()), this, SLOT(operatorClicked()));
+    connect(m_equal_button, SIGNAL(clicked()), this, SLOT(calculate()));
+    connect(m_float_button, SIGNAL(clicked()), this, SLOT(floatButtonClicked()));
 
     // Layout
 
@@ -117,6 +121,30 @@ void Calculator::numberClicked()
 
 }
 
+void Calculator::floatButtonClicked()
+{
+    MyButton* btn = (MyButton*)sender();
+    if(!m_floatClicked && m_display->text().back().isDigit()){
+        m_display->setText(m_display->text() + btn->text());
+        m_floatClicked = true;
+    }
+}
+
+void Calculator::powerButtonClicked()
+{
+    if(m_display->text().back().isDigit() || m_display->text().endsWith(')')){
+        m_display->setText(m_display->text() + '^');
+
+    }
+
+    else if (m_display->text().back().isSymbol()){
+        m_display->setText(m_display->text().removeLast() + '^');
+
+    }
+
+    m_floatClicked = false;
+}
+
 void Calculator::operatorClicked()
 {
     MyButton* btn = (MyButton*)sender();
@@ -124,6 +152,13 @@ void Calculator::operatorClicked()
         m_display->setText(m_display->text() + btn->text());
 
     }
+
+    else if (m_display->text().back().isSymbol()){
+        m_display->setText(m_display->text().removeLast() + btn->text());
+
+    }
+
+    m_floatClicked = false;
 }
 
 
@@ -132,11 +167,14 @@ void Calculator::clearClicked()
 {
     m_display->setText("0");
     m_display_answer->clear();
+    m_floatClicked = false;
 }
 
 void Calculator::backspaceClicked()
 {
-
+    if(m_display->text().endsWith('.')){
+        m_floatClicked = false;
+    }
     m_display->setText(m_display->text().removeLast());
     if(m_display->text() == "")
         m_display->setText("0");
@@ -163,5 +201,120 @@ void Calculator::closeBracketClicked()
         m_count_of_brackets--; // jnjvox
     }
 }
+
+void Calculator::calculate()
+{
+    QString exp = m_display->displayText();
+    QString temp = "";
+    QStack<double> operands;
+    QStack<QChar> operators;
+
+    while(!exp.isEmpty()){
+
+        while(!exp.isEmpty() && (exp.front().isDigit()|| exp.front() == '.')){
+            temp += exp.front();
+            exp.removeFirst();
+        }
+
+        operands.push(temp.toDouble());
+        temp.clear();
+
+        while(!(exp.isEmpty() || exp.front().isDigit())){
+
+            if(!operators.empty() && (priorityOperator(operators.top()) >= priorityOperator(exp.front()))){
+                double b = operands.pop();
+                double a = operands.pop();
+                operands.push(maths(operators.top(), a, b));
+                operators.pop();
+
+            }
+
+            if(!exp.isEmpty() && exp.front() == '('){
+                operators.push('(');
+                exp.removeFirst();
+            }
+
+            else if(!exp.isEmpty() && exp.front() == ')'){
+                while(operators.top() != '('){
+                    double b = operands.pop();
+                    double a = operands.pop();
+                    operands.push(maths(operators.top(), a, b));
+                    operators.pop();
+                }
+                operators.pop();
+            }
+
+            operators.push(exp.front());
+            exp.removeFirst();
+        }
+
+
+
+    }
+
+    if (exp.isEmpty()){
+        while(!operators.empty()){
+
+            double b = operands.pop();
+            double a = operands.pop();
+            operands.push(maths(operators.top(), a, b));
+            operators.pop();
+
+        }
+
+    }
+    m_display_answer->setText(QString::number(operands.top()));
+
+
+    while(!operands.empty()){
+        qDebug() << operands.top();
+        operands.pop();
+    }
+
+
+}
+
+
+int Calculator::priorityOperator(QChar& op){
+
+    if(op == '+')
+        return 1;
+
+    else if(op == QChar(0x2212))
+        return 1;
+    else if(op == QChar(0x00D7) || op == QChar(0x00F7))
+        return 2;
+    else if(op == '^' || op == QChar(0x221A))
+        return 3;
+
+
+    return 0;
+}
+
+double Calculator::maths(QChar &op, double a, double b)
+{
+    double ans = 0;
+    if(op == '+')
+        ans = a+b; //return a+b;
+
+    else if(op == QChar(0x2212))
+        ans = a-b; //return a-b;
+
+    else if(op == QChar(0x00D7))
+        ans = a*b; //return a*b;
+
+    else if (op == QChar(0x00F7))
+        ans = a/b; //return a/b;
+
+    else if(op == '^')
+        ans = pow(a,b); //return pow(a,b);
+
+    else if(op == QChar(0x221A))
+        ans = sqrt(b); //return sqrt(b);
+
+    return ans;
+}
+
+
 
 
