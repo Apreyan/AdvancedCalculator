@@ -52,6 +52,7 @@ private slots:
     void powerButtonClicked();
     void calculate();
     void calculation();
+    void equalClicked();
     int priorityOperator(QChar&);
     double maths(QChar& op, double a = 0,double b = 0);
 

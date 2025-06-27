@@ -73,7 +73,8 @@ Calculator::Calculator() {
     connect(m_div_button, SIGNAL(clicked()), this, SLOT(operatorClicked()));
     connect(m_power_button, SIGNAL(clicked()), this, SLOT(powerButtonClicked()));
     //connect(m_sqrt_button, SIGNAL(clicked()), this, SLOT(operatorClicked()));
-    connect(m_equal_button, SIGNAL(clicked()), this, SLOT(calculation()));
+    //connect(m_equal_button, SIGNAL(clicked()), this, SLOT(calculation()));
+    connect(m_equal_button, SIGNAL(clicked()), this, SLOT(equalClicked()));
     connect(m_float_button, SIGNAL(clicked()), this, SLOT(floatButtonClicked()));
 
     // Layout
@@ -119,6 +120,7 @@ void Calculator::numberClicked()
     }
     m_display->setText(m_display->text() + btn->text());
 
+    calculation();
 }
 
 void Calculator::floatButtonClicked()
@@ -158,6 +160,10 @@ void Calculator::operatorClicked()
 
     }
 
+    else if(m_display->text().back() == '(' && btn->text() == QChar(0x2212)){
+        m_display->setText(m_display->text() + '0' + btn->text());
+    }
+
     m_floatClicked = false;
 }
 
@@ -185,6 +191,8 @@ void Calculator::backspaceClicked()
     m_display->setText(m_display->text().removeLast());
     if(m_display->text() == "")
         m_display->setText("0");
+
+    calculation();
 }
 
 void Calculator::openBracketClicked()
@@ -310,14 +318,19 @@ void Calculator::calculation()
     QStack<double> operands;
     QStack<QChar> operators;
 
-    int i = 0;
+    QString temp = "";
+
+    if(exp.front() == '-'){
+        temp += '-';
+        exp.removeFirst();
+    }
 
     while(!exp.isEmpty()){
 
 
         if(!exp.isEmpty() && exp.front().isDigit()){
 
-            QString temp = "";
+            //QString temp = "";
 
             while(!exp.isEmpty() && (exp.front().isDigit() || exp.front() == '.')){
 
@@ -357,7 +370,7 @@ void Calculator::calculation()
 
         else if(!exp.isEmpty()) {
 
-            if(!operators.empty() && (priorityOperator(operators.top()) >= priorityOperator(exp.front()) + i)){
+            if(!operators.empty() && (priorityOperator(operators.top()) >= priorityOperator(exp.front()))){
                 double b = operands.pop();
                 double a = operands.pop();
                 if(operators.top() == '('){
@@ -396,9 +409,21 @@ void Calculator::calculation()
 
     if(!operands.empty()){
 
-        m_display_answer->setText(QString::number(operands.top()));
+        m_display_answer->setText('=' + QString::number(operands.top()));
     }
 
+
+}
+
+void Calculator::equalClicked()
+{
+    if(!m_display_answer->text().isEmpty()){
+        m_display->setText(m_display_answer->text());
+        if(m_display_answer->text().front() == '='){
+            m_display->setText(m_display_answer->text().removeFirst());
+        }
+        m_display_answer->clear();
+    }
 }
 
 
